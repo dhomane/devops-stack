@@ -1,5 +1,5 @@
 locals {
-  base_domain = "example.com"
+  base_domain = "kubeapps.ml"
 
   kubernetes_host                   = module.cluster.kubernetes_host
   kubernetes_cluster_ca_certificate = module.cluster.kubernetes_cluster_ca_certificate
@@ -31,7 +31,7 @@ module "cluster" {
 
   worker_groups = [
     {
-      instance_type        = "m5a.large"
+      instance_type        = "t3.micro"
       asg_desired_capacity = 2
       asg_max_size         = 3
     }
