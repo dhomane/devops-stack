@@ -1,33 +1,55 @@
+# terraform/main.tf
+
 locals {
-  base_domain = "kubeapps.ml"
+  cluster_name = "my-cluster"
+}
 
-  kubernetes_host                   = module.cluster.kubernetes_host
-  kubernetes_cluster_ca_certificate = module.cluster.kubernetes_cluster_ca_certificate
-  kubernetes_token                  = module.cluster.kubernetes_token
+data "aws_availability_zones" "available" {}
 
-  map_roles = [
-    {
-      rolearn  = data.aws_iam_role.eks_admin.arn
-      username = data.aws_iam_role.eks_admin.arn
-      groups   = ["system:masters"]
-    },
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "2.66.0"
+
+  name = local.cluster_name
+  cidr = "10.0.0.0/16"
+
+  azs = data.aws_availability_zones.available.names
+
+  private_subnets = [
+    "10.0.1.0/24",
+    "10.0.2.0/24",
+    "10.0.3.0/24",
   ]
-}
 
-data "aws_vpc" "this" {
-  cidr_block = "10.11.0.0/16"
-}
+  public_subnets = [
+    "10.0.11.0/24",
+    "10.0.12.0/24",
+    "10.0.13.0/24",
+  ]
 
-data "aws_iam_role" "eks_admin" {
-  name = "eks_admin"
+  # NAT Gateway Scenarios : One NAT Gateway per availability zone
+  enable_nat_gateway     = true
+  single_nat_gateway     = false
+  one_nat_gateway_per_az = true
+
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  private_subnet_tags = {
+    "kubernetes.io/cluster/default"   = "shared"
+    "kubernetes.io/role/internal-elb" = "1"
+  }
+
+  public_subnet_tags = {
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 
 module "cluster" {
-  source = "git::https://github.com/camptocamp/devops-stack.git//modules/eks/aws?ref=master"
+  source = "git::https://github.com/camptocamp/devops-stack.git//modules/eks/aws?ref=v0.47.0"
 
-  cluster_name                         = "my-cluster"
-  cluster_endpoint_public_access_cidrs = local.cluster_endpoint_public_access_cidrs
-  vpc_id                               = data.aws_vpc.this.id
+  cluster_name = local.cluster_name
+  vpc_id       = module.vpc.vpc_id
 
   worker_groups = [
     {
@@ -37,9 +59,7 @@ module "cluster" {
     }
   ]
 
-  map_roles = local.map_roles
-
-  base_domain = local.base_domain
+  base_domain     = "kubeapps.ml"
 
   cognito_user_pool_id     = aws_cognito_user_pool.pool.id
   cognito_user_pool_domain = aws_cognito_user_pool_domain.pool_domain.domain
