@@ -1,3 +1,10 @@
+# terraform/outputs.tf
+
+output "argocd_server_admin_password" {
+  sensitive = true
+  value     = module.cluster.argocd_server_admin_password
+}
+
 output "argocd_auth_token" {
   sensitive = true
   value     = module.cluster.argocd_auth_token
