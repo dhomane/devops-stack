@@ -46,20 +46,20 @@ module "vpc" {
 }
 
 module "cluster" {
-  source = "git::https://github.com/camptocamp/devops-stack.git//modules/eks/aws?ref=v0.47.0"
+  source = "git::https://github.com/dhomane/devops-stack.git//modules/eks/aws?ref=v0.47.0"
 
   cluster_name = local.cluster_name
   vpc_id       = module.vpc.vpc_id
 
   worker_groups = [
     {
-      instance_type        = "t3.micro"
+      instance_type        = "t2.micro"
       asg_desired_capacity = 2
       asg_max_size         = 3
     }
   ]
 
-  base_domain     = "kubeapps.ml"
+  base_domain     = "cloudstatus.ml"
 
   cognito_user_pool_id     = aws_cognito_user_pool.pool.id
   cognito_user_pool_domain = aws_cognito_user_pool_domain.pool_domain.domain
